@@ -19,6 +19,8 @@ import prefetch
 from urlparse import urlparse
 from models import User, Post, Comment, Vote 
 from django.utils.html import escape
+from django.utils import simplejson
+from google.appengine.ext.webapp import template
 
 def sanitizeHtml(value):
   return escape(value)
@@ -29,6 +31,17 @@ def is_json(value):
   else:
     return False
 
+def render(self,key,tmpl,locals):
+  if is_json(self.request.url):
+    if(self.request.get('callback')):
+      self.response.headers['Content-Type'] = "application/javascript"
+      self.response.out.write(self.request.get('callback')+'('+simplejson.dumps({'nickname':key.nickname,'twitter':key.twitter,'github':key.github,'hn':key.hnuser})+')')
+    else:
+      self.response.headers['Content-Type'] = "application/javascript"
+      self.response.out.write(simplejson.dumps({'nickname':key.nickname,'twitter':key.twitter,'github':key.github,'hn':key.hnuser}))
+  else:	  
+    self.response.out.write(template.render(tmpl, locals))
+  
 def parse_post_id(value):
   if is_json(value):
     return value.split('.')[0]
@@ -90,3 +103,6 @@ def order_comment_list_in_memory(comments):
 def base_url(self):
   uri = urlparse(self.request.url)
   return uri.scheme +'://'+ uri.netloc
+
+
+  
